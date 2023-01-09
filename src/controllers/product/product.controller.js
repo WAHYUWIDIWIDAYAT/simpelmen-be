@@ -8,12 +8,6 @@ const Jenis_Products = db.jenis_products;
 const Op = db.Sequelize.Op;
 import multer from "multer";
 
-// Load .env file
-import * as dotenv from "dotenv";
-
-dotenv.config();
-
-
 const ShowAllProducts = (req, res) => {
     Products.findAll({
         include: [
@@ -81,7 +75,14 @@ const ShowProductById = (req, res) => {
         ],
     })
         .then((data) => {
-            res.send(data);
+            if (data) {
+                res.send(data);
+            }
+            else {
+                res.send({
+                    message: `Cannot find Product with id=${id}.`,
+                });
+            }
         })
         .catch((err) => {
             res.status(500).send({
@@ -128,32 +129,26 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage }).single("product_image");
 
 const createProduct = (req, res) => {
-    upload(req, res, (err) => {
-        if (err) {
-            return res.status(400).json({ success: false, err });
-        }
-        else {
-            const product_name = req.body.product_name;
-            const product_price = req.body.product_price;
-            const product_description = req.body.product_description;
-            const product_material_id = req.body.product_material_id;
-            const product_size_id = req.body.product_size_id;
-            const product_category_id = req.body.product_category_id;
-            const product_finishing_id = req.body.product_finishing_id;
-            const jenis_product_id = req.body.jenis_product_id;
-            const product_image = req.file.filename;
-
-            Products.create({
-                product_image: product_image,
-                product_name: product_name,
-                product_price: product_price,
-                product_description: product_description,
-                product_material_id: product_material_id,
-                product_size_id: product_size_id,
-                product_category_id: product_category_id,
-                product_finishing_id: product_finishing_id,
-                jenis_product_id: jenis_product_id,
+    upload(req, res, function (err) {
+        if(err){
+            return res.status(500).json({
+                message: err.message
             })
+        }
+        else{
+            const product = {
+                product_name: req.body.product_name,
+                product_description: req.body.product_description,
+                product_price: req.body.product_price,
+                product_image: req.file.filename,
+                product_material: req.body.product_material_id,
+                product_size: req.body.product_size_id,
+                product_category: req.body.product_category_id,
+                product_finishing: req.body.product_finishing_id,
+                jenis_product: req.body.jenis_product_id,
+                product_weight: req.body.product_weight,
+            };
+            Products.create(product)
                 .then((data) => {
                     res.send(data);
                 })
@@ -161,8 +156,7 @@ const createProduct = (req, res) => {
                     res.status(500).send({
                         message: err.message || "Some error occurred while creating the Product.",
                     });
-                }
-                );
+                });
         }
     });
 }
