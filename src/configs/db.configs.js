@@ -16,4 +16,11 @@ const configs = {
   },
 };
 
+configs.retry = {
+  max: 6,
+};
+
+
+
+
 export default configs;

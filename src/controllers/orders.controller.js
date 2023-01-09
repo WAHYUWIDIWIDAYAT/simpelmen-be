@@ -12,6 +12,7 @@ const Delivery_Details = db.delivery_details;
 const Retributions = db.retributions;
 const Jenis_Products = db.jenis_products;
 const Province = db.province;
+import multer from "multer";
 import PDFDocument from 'pdfkit';
 const City = db.city;
 const SubDistrict = db.subdistrict;
@@ -45,73 +46,93 @@ const romanMonth = [
     "XII",
 ];
 
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, "./public/images");
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    },
+});
+
+const upload = multer({ storage: storage }).single("product_image");
+
 const addCart = (req, res, next) => {
-    const user_id = req.user_id;
-    const product_id = req.params.id;
-    const { order_total_price, order_quantity , order_note , order_price , order_design_image , order_design, order_payment_method , order_payment_status,panjang_1, panjang_2,lebar_1,lebar_2,tinggi_1,tinggi_2 , order_discount, order_last_payment_date,order_finishing_id,order_material_id,order_detail_sablon,order_detail_shape} = req.body;
-    db.sequelize.transaction(function (t) {
-        return Orders.create({
-            order_user_id: user_id,
-            order_total_price: order_total_price,
-            order_discount: order_discount,
-            order_note: order_note,
-            order_price: order_price,
-            order_payment_method: order_payment_method,
-            order_payment_status: order_payment_status,
-            order_last_payment_date: order_last_payment_date,
-        }, { transaction: t })
-        .then(function (order) {
-            return Products.findOne({
-                where: { product_id: product_id },
-            },{ transaction: t })
-                .then((data) => {
-                    return OrderDetails.create({
-                        order_detail_order_id: order.order_id,
-                        order_detail_product_id: product_id,
-                        order_detail_quantity: order_quantity,
-                        p1: panjang_1,
-                        p2: panjang_2,
-                        l1: lebar_1,
-                        l2: lebar_2,
-                        t1: tinggi_1,
-                        t2: tinggi_2,
-                        order_detail_finishings_id: order_finishing_id,
-                        order_detail_materials_id: order_material_id,
-                        order_detail_design: order_design,
-                        order_detail_design_image: order_design_image,
-                        order_detail_sablon: order_detail_sablon,
-                        order_detail_shape: order_detail_shape
-                    },{ transaction: t })
-                })
-                .then((data) => {
-                    return Order_Status.create({
-                        order_status_order_id: order.order_id,
-                        order_status_admin_code: "8",
-                        order_status_description: "Di Keranjang",
-                    },{ transaction: t })
-                })
-                .then((data) => {
+    upload(req, res, function (err) {
+        if(err){
+            return res.status(500).json({
+                message: err.message
+            })
+        }
+        else{
+            const user_id = req.user_id;
+            const product_id = req.params.id;
+            const { order_total_price, order_quantity , order_note , order_price , order_design_image , order_design, order_payment_method , order_payment_status,panjang_1, panjang_2,lebar_1,lebar_2,tinggi_1,tinggi_2 , order_discount, order_last_payment_date,order_finishing_id,order_material_id,order_detail_sablon,order_detail_shape} = req.body;
+            db.sequelize.transaction(function (t) {
+                return Orders.create({
+                    order_user_id: user_id,
+                    order_total_price: order_total_price,
+                    order_discount: order_discount,
+                    order_note: order_note,
+                    order_price: order_price,
+                    order_payment_method: order_payment_method,
+                    order_payment_status: order_payment_status,
+                    order_last_payment_date: order_last_payment_date,
+                }, { transaction: t })
+                .then(function (order) {
                     return Products.findOne({
                         where: { product_id: product_id },
                     },{ transaction: t })
-                    .then((data) => {
-                        return Orders.update({
-                            order_code: `${order.order_id}/BIKDK/${data.product_category}/${romanMonth[month - 1]}/${year}`,
-                        },{ where: { order_id: order.order_id }, transaction: t })
-                    })
+                        .then((data) => {
+                            return OrderDetails.create({
+                                order_detail_order_id: order.order_id,
+                                order_detail_product_id: product_id,
+                                order_detail_quantity: order_quantity,
+                                p1: panjang_1,
+                                p2: panjang_2,
+                                l1: lebar_1,
+                                l2: lebar_2,
+                                t1: tinggi_1,
+                                t2: tinggi_2,
+                                order_detail_finishings_id: order_finishing_id,
+                                order_detail_materials_id: order_material_id,
+                                order_detail_design: order_design,
+                                order_detail_design_image: req.file.filename,
+                                order_detail_sablon: order_detail_sablon,
+                                order_detail_shape: order_detail_shape
+                            },{ transaction: t })
+                        })
+                        .then((data) => {
+                            return Order_Status.create({
+                                order_status_order_id: order.order_id,
+                                order_status_admin_code: "8",
+                                order_status_description: "Di Keranjang",
+                            },{ transaction: t })
+                        })
+                        .then((data) => {
+                            return Products.findOne({
+                                where: { product_id: product_id },
+                            },{ transaction: t })
+                            .then((data) => {
+                                return Orders.update({
+                                    order_code: `${order.order_id}/BIKDK/${data.product_category}/${romanMonth[month - 1]}/${year}`,
+                                },{ where: { order_id: order.order_id }, transaction: t })
+                            })
+                        }
+                    )
                 }
-            )
+                )
+            }).then(function (result) {
+                res.status(200).send({
+                    message: "Order Created",
+                });
+            }).catch(function (err) {
+                res.status(500).send({
+                    message: err.message || "Some error occurred while creating the Order.",
+                });
+            });
         }
-        )
-    }).then(function (result) {
-        res.status(200).send({
-            message: "Order Created",
-        });
-    }).catch(function (err) {
-        res.status(500).send({
-            message: err.message || "Some error occurred while creating the Order.",
-        });
-    });
+    })
 };
 
 // const addCart = (req, res, next) => {
