@@ -16,7 +16,7 @@ const productsRoutes = (app) => {
   router.get("/:id", ShowProductById);
   router.post("/", createProduct,isSuperAdmin,isLogin);
   router.put("/:id", updateProduct,isSuperAdmin,isLogin);
-  router.delete("/:id", deleteProduct,isSuperAdmin,isLogin);
+  router.put("/delete/:id", deleteProduct,isSuperAdmin,isLogin);
   router.get("/detail/:id", ShowAllProductByCategory);
   app.use("/api/product", router);
 };

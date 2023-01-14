@@ -34,6 +34,9 @@ const ShowAllProducts = (req, res) => {
             },
 
         ],
+        where: {
+            product_status: { [Op.eq]: 1 },
+        },
     })
         .then((data) => {
             res.send(data);
@@ -73,20 +76,13 @@ const ShowProductById = (req, res) => {
 
             },
         ],
-    })
+        })
         .then((data) => {
-            if (data) {
-                res.send(data);
-            }
-            else {
-                res.send({
-                    message: `Cannot find Product with id=${id}.`,
-                });
-            }
+            res.send(data);
         })
         .catch((err) => {
-            res.status(500).send({
-                message: err.message || "Some error occurred while retrieving products.",
+            res.status(404).send({
+                message: "Product not found"
             });
         });
 }
@@ -147,6 +143,7 @@ const createProduct = (req, res) => {
                 product_finishing: req.body.product_finishing_id,
                 jenis_product: req.body.jenis_product_id,
                 product_weight: req.body.product_weight,
+                product_status: 1,
             };
             Products.create(product)
                 .then((data) => {
@@ -162,8 +159,7 @@ const createProduct = (req, res) => {
 }
 const deleteProduct = (req, res) => {
     const id = req.params.id;
-    
-    Products.destroy({
+    Products.update({product_status: 0}, {
         where: { product_id: id },
     })
         .then((num) => {
@@ -176,10 +172,11 @@ const deleteProduct = (req, res) => {
                     message: `Cannot delete Product with id=${id}. Maybe Product was not found!`,
                 });
             }
-        })
+        }
+        )
         .catch((err) => {
             res.status(500).send({
-                message: "Could not delete Product with id=" + id,
+                message: err.message || "Some error occurred while retrieving products.",
             });
         });
 }

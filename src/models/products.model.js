@@ -25,6 +25,9 @@ const Products = (sequelize, Sequelize) => {
       product_finishing: {
         type: Sequelize.INTEGER,
       },
+      product_status: {
+        type: Sequelize.STRING,
+      },
       product_weight: {
         type: Sequelize.DOUBLE,
       },
